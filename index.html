@@ -196,7 +196,7 @@ try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().ca
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 
 /* ---------- views ---------- */
-const F={show:'all',type:'',region:'',q:'',hide:false,limit:40};
+const F={show:'all',type:'',region:'',q:'',hide:false,limit:40,here:true};
 const V=$('#v');
 function view(){const h=location.hash.slice(1);return['plan','route','pickup','data'].includes(h)?h:'plan'}
 function render(){const v=view();document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));
@@ -211,6 +211,7 @@ function renderPlan(){const all=prods(),sl=all.filter(p=>vget(p.id).priority),cn
   V.innerHTML=`<h2>Who do we visit this time?</h2><p class="sub">${CAT.length} winemakers at this salon, ${knownHere} you already know · <b>${sl.length}</b> on the shortlist (${cnt('must')} must · ${cnt('want')} want · ${cnt('maybe')} maybe)</p>
   <div class="tools"><input type="search" id="q" placeholder="Search a name, region, appellation" value="${esc(F.q)}" aria-label="Search">
   <select id="reg" aria-label="Region"><option value="">All regions</option>${regions.map(r=>`<option ${F.region===r?'selected':''}>${esc(r)}</option>`).join('')}</select></div>
+  <div class="chips"><button class="chip" data-act="here" aria-pressed="${F.here}">At this salon</button></div>
   <div class="chips">${[['all','All'],['short','Shortlist'],['known','Known'],['new','New to us'],['top','Rated 4+'],['missed','Missed before'],['bought','Bought before']].map(([k,l])=>`<button class="chip" data-act="filter" data-n="${k}" aria-pressed="${F.show===k}">${l}</button>`).join('')}</div>
   <div class="chips">${[['','Any type'],['sparkling','Sparkling'],['sweet','Sweet'],['spirits','Spirits'],['organic','Organic']].map(([k,l])=>`<button class="chip" data-act="type" data-n="${k}" aria-pressed="${F.type===k}">${l}</button>`).join('')}</div>
   <div id="list"></div>`;renderList()}
@@ -219,6 +220,7 @@ function renderList(){const q=norm(F.q.trim());
     if(q&&!norm(p.name+' '+regionOf(p)+' '+(p.f.appellations||'')+' '+(p.f.town||'')+' '+(i.cat?i.cat.s:'')).includes(q))return false;
     if(F.region&&regionOf(p)!==F.region)return false;
     if(F.type&&!i.types.includes(F.type))return false;
+    if(F.here&&!i.cat&&!has(v))return false;
     return F.show==='all'||(F.show==='short'&&v.priority)||(F.show==='known'&&i.pv.length)||(F.show==='new'&&!i.pv.length)||(F.show==='top'&&i.best>=4)||(F.show==='missed'&&i.missed&&!i.best)||(F.show==='bought'&&i.bought)});
   const po={must:0,want:1,maybe:2,'':3};l.sort((a,b)=>po[a.v.priority]-po[b.v.priority]||(b.i.pv.length>0)-(a.i.pv.length>0)||b.i.best-a.i.best||a.p.name.localeCompare(b.p.name));
   const rest=l.length-F.limit;
@@ -286,6 +288,7 @@ async function act(b){const{act:a,id,n}=b.dataset,v=id?vget(id):null;
   else if(a==='buy')vset(id,{bought:!v.bought,picked:false,here:true,...auto});
   else if(a==='more'){F.limit+=40;renderList();return}
   else if(a==='type'){F.type=n;F.limit=40}
+  else if(a==='here'){F.here=!F.here;F.limit=40}
   else if(a==='pick')vset(id,{picked:!v.picked});
   else if(a==='open'){openSheet(id);return}
   else if(a==='add'){openAdd();return}
